@@ -1,0 +1,290 @@
+
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+int data = 0;
+int data2 = 0;
+int buttonstate = 0;
+int alarmcount = 0;
+const int pingPin = 13; // Trigger Pin of Ultrasonic Sensor
+const int echoPin = 12; // Echo Pin of Ultrasonic Sensor
+
+//feed back rescorse
+const int greenled = 7;
+const int redled = 8;
+const int vibe = 9;
+const int piezo = 10;
+const int alarm = 11;
+
+
+
+//display pin a4-a5 hex address ox3c
+
+//input for button
+const int upbutton = 2;
+const int downbutton = 3;
+const int leftbutton = 4;
+const int rightbutton = 5;
+const int enterbutton = 6;
+
+
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);// -1 notes no reset pin
+
+void setup() {
+  
+  pinMode(greenled, OUTPUT);
+  pinMode(redled, OUTPUT);
+  pinMode(vibe, OUTPUT);
+  pinMode(piezo, OUTPUT);
+  pinMode(alarm, OUTPUT);
+
+
+  pinMode(upbutton, INPUT);
+  pinMode(downbutton, INPUT);
+  pinMode(leftbutton, INPUT);
+  pinMode(rightbutton, INPUT);
+  pinMode(enterbutton, INPUT);
+  
+  Serial.begin(115200);
+
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+Logo(); // calls boot logo
+}
+
+void loop() {
+  // ping output/input primeing ---------------------------
+   long duration, inches, cm;
+   pinMode(pingPin, OUTPUT);
+   digitalWrite(pingPin, LOW);
+   delayMicroseconds(2);
+   digitalWrite(pingPin, HIGH);
+   delayMicroseconds(10);
+   digitalWrite(pingPin, LOW);
+   pinMode(echoPin, INPUT);
+   duration = pulseIn(echoPin, HIGH);
+   cm = microsecondsToCentimeters(duration);
+   //--------------------------------------------------
+
+   //condishions for printing to serial, can be cominted out on finle verson-----------
+   if(cm > 30){
+   Serial.print(cm);
+   Serial.print("cm");
+   Serial.println();
+   delay(1);
+   }
+   //-------------------------------------------------------------
+   //trigering for action when someone walks infrount of the display -----------------------
+   if(cm <30){
+   Serial.print("triggerd");
+   Serial.println();
+   delay(1);
+   }
+   //--------------------------------------------------------------------
+  
+ goalarm();
+ checkbutton();
+ buzz();
+}
+
+
+// converson for disents for ping ------------------------
+long microsecondsToCentimeters(long microseconds) {
+   return microseconds / 29 / 2;
+}
+//------------------------------------------------------------
+
+
+
+void Logo(){ //runs boot logo
+  display.clearDisplay();
+
+  display.setTextSize(3);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("Solar  Station");
+  display.display(); 
+  delay(2000);
+  display.clearDisplay();
+  display.display();
+}
+
+
+void checkbutton(){
+
+
+// up button----------------------------------
+  buttonstate = digitalRead(upbutton);
+
+  // check if upbutton is pressed
+  if (buttonstate == LOW) {
+   data ++; 
+     display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println(data);
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  }
+
+//-----------------------------------------------
+
+//down button-----------------------------------------------
+buttonstate = digitalRead(downbutton);
+
+  // check if upbutton is pressed
+  if (buttonstate == LOW) {
+     display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("Down Button");
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  }
+
+//-------------------------------------------
+
+//left button-------------------------------------------------
+buttonstate = digitalRead(leftbutton);
+
+  // check if upbutton is pressed
+  if (buttonstate == LOW) {
+     display.clearDisplay();
+
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("Left Button");
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  }
+//----------------------------------------------------------------------------
+
+
+//right button -------------------------------------------------------
+
+buttonstate = digitalRead(rightbutton);
+ 
+  // check if upbutton is pressed
+  if (buttonstate == LOW) {
+     display.clearDisplay();
+  alarmcount ++;
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println(alarmcount);
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  }
+
+//---------------------------------------------------------------------------------
+
+
+
+// enter button-----------------------------------------
+buttonstate = digitalRead(enterbutton);
+
+  // check if upbutton is pressed
+  if (buttonstate == LOW) {
+     display.clearDisplay();
+  alarmcount = 0;
+  digitalWrite(alarm,LOW);
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("Enter Button");
+  
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  }
+
+
+}
+
+
+void vibebuzz(){
+
+digitalWrite(vibe,HIGH);
+  delay(100);
+  digitalWrite(vibe,LOW);
+  delay(100);
+  digitalWrite(vibe,HIGH);
+  delay(100);
+  digitalWrite(vibe,LOW);
+  delay(100);
+}
+
+
+void goalarm(){
+if (alarmcount > 0){
+  digitalWrite(alarm,HIGH);
+  ledflasher();
+}
+  else{
+    digitalWrite(alarm,LOW);
+  
+}
+
+
+}
+void ledflasher(){
+while(alarmcount > 0){
+  
+  digitalWrite(redled,HIGH);
+  delay(500);
+  digitalWrite(redled,LOW);
+  delay(500);
+  checkbutton();
+}
+  
+}
+
+
+void buzz(){
+  if(data > 2){
+  vibebuzz();
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  // Display static text
+  display.println("up pressed 3 times");
+  display.display(); 
+  delay(1000);
+  display.clearDisplay();
+  display.display();
+  data = 0;
+  }
+ 
+}
+
+
+  
